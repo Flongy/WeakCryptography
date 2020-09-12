@@ -14,29 +14,29 @@ class ShiftCrypto(BaseCrypto):
 
     def __rshift_character(self, character: int):
         """ Shift character RIGHT (overflowing characters cycle over starting with an 'a') """
-        if ord('a') <= character <= ord('z'):
+        if 97 <= character <= 122:      # is alpha - between symbols 'a' (= 97) and 'z' (= 122)
             character += self.shift
-            if character > ord('z'):
+            if character > 122:         # overflow (more than 'z')
                 character -= 25
         return character
 
     def __lshift_character(self, character: int):
         """ Shift character LEFT (overflowing characters cycle over starting with a 'z') """
-        if ord('a') <= character <= ord('z'):
+        if 97 <= character <= 122:      # is alpha - between symbols 'a' (= 97) and 'z' (= 122)
             character -= self.shift
-            if character < ord('a'):
+            if character < 97:          # overflow (less than 'a')
                 character += 25
         return character
 
     @staticmethod
     def encode_text(text: str):
         """ Convert string var into a list of characters as ints """
-        return list(text.lower().encode("ascii"))
+        return tuple(text.lower().encode("ascii"))
 
     @staticmethod
     def decode_text(lst):
         """ Convert list of ints (characters) to string """
-        return bytes.decode(bytes(lst))
+        return bytes(lst).decode('ascii')
 
     def encrypt(self, text: str):
         """ Encrypt text into ciphertext """
@@ -63,4 +63,4 @@ if __name__ == "__main__":
 
     crypto = ShiftCrypto(3)
     assert test_string == crypto.decrypt(crypto.encrypt(test_string)), "Shift cipher"
-    print("[Shift cipher] success")
+    print("[SUCCESS] Shift Cipher")
