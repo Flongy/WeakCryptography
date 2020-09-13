@@ -63,13 +63,15 @@ class ShiftCrypto(BaseCrypto):
 class MultiAlphabetCrypto(BaseCrypto):
     """ MultiAlphabet Cipher
     Using table with 16 randomly picked shift combinations """
-    def __init__(self, seed: int = 42):
+    def __init__(self, seed: int = 42, alphabet_num: int = 32):
         self.seed = seed
         if self.seed is not None:
             random.seed(self.seed)
 
+        self.alphabet_num = alphabet_num
+
         table = []
-        for i in range(16):
+        for i in range(self.alphabet_num):
             table.append(list(range(26)))
             random.shuffle(table[i])
         self.table = table
