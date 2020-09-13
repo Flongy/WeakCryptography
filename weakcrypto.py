@@ -62,7 +62,7 @@ class ShiftCrypto(BaseCrypto):
 
 class MultiAlphabetCrypto(BaseCrypto):
     """ MultiAlphabet Cipher
-    Using table with 16 randomly picked shift combinations """
+    Using table with 32 randomly picked shift combinations """
     def __init__(self, seed: int = 42, alphabet_num: int = 32):
         self.seed = seed
         if self.seed is not None:
@@ -75,6 +75,7 @@ class MultiAlphabetCrypto(BaseCrypto):
             table.append(list(range(26)))
             random.shuffle(table[i])
         self.table = table
+        self._dtable = None
 
     @classmethod
     def from_table(cls, table: list):
@@ -83,14 +84,25 @@ class MultiAlphabetCrypto(BaseCrypto):
         crypto.table = table
         return crypto
 
-    def encrypt(self, text: str):
-        """ Encrypt text into ciphertext """
+    def _get_dtable(self):
+        """ Calculate table for decryption """
+        if self._dtable is None:
+            dtable = []
+            for row in self.table:
+                dtable.append([])
+                for i in range(26):
+                    dtable[-1].append(row.index(i))
+            self._dtable = dtable
+        return self._dtable
+
+    def _process_text(self, text: str, table: list):
+        """ Use table to shift characters (encryption and decryption use same algorithm, just different tables) """
         char_list = self._encode_text(text)
 
         i = 0
         l = len(text)
         while True:
-            for line in self.table:
+            for line in table:
                 while not ORD_A <= char_list[i] <= ORD_Z:
                     i += 1
                     if i >= l:
@@ -101,48 +113,43 @@ class MultiAlphabetCrypto(BaseCrypto):
                 if i >= l:
                     return self._decode_text(char_list)
 
+    def encrypt(self, text: str):
+        """ Encrypt text into ciphertext """
+        return self._process_text(text, self.table)
+
     def decrypt(self, ciphertext: str):
         """ Decrypt ciphertext into plain text """
-        char_list = self._encode_text(ciphertext)
-
-        i = 0
-        l = len(ciphertext)
-        while True:
-            for line in self.table:
-                while not ORD_A <= char_list[i] <= ORD_Z:
-                    i += 1
-                    if i >= l:
-                        return self._decode_text(char_list)
-                # TODO (optimization): remake table for decryption to not use .index
-                char_list[i] = ORD_A + line.index(char_list[i] - ORD_A)
-
-                i += 1
-                if i >= l:
-                    return self._decode_text(char_list)
+        return self._process_text(ciphertext, self._get_dtable())
 
 
 if __name__ == "__main__":
     """ Testing the module """
     test_string = "Hello GitHub! Testing your code is always important.".lower()    # No upper letters yet
+    big_test_string = open("timeit_tests/lorem.txt").read().lower()
 
     # Testing Shift Cipher
     crypto = ShiftCrypto()  # Default shift - 9
     assert test_string == crypto.decrypt(crypto.encrypt(test_string)), "Shift cipher"
+    assert big_test_string == crypto.decrypt(crypto.encrypt(big_test_string)), "Shift cipher"
 
     crypto = ShiftCrypto(3)
     assert test_string == crypto.decrypt(crypto.encrypt(test_string)), "Shift cipher"
+    assert big_test_string == crypto.decrypt(crypto.encrypt(big_test_string)), "Shift cipher"
     print("[SUCCESS] Shift Cipher")
 
     # Testing Multi Alphabet Cipher
     crypto = MultiAlphabetCrypto()      # Default seed - 42
     table = crypto.table
     assert test_string == crypto.decrypt(crypto.encrypt(test_string)), "MultiAlphabet cipher"
+    assert big_test_string == crypto.decrypt(crypto.encrypt(big_test_string)), "MultiAlphabet cipher"
 
     crypto = MultiAlphabetCrypto(1337)  # Different seed
     assert test_string == crypto.decrypt(crypto.encrypt(test_string)), "MultiAlphabet cipher"
+    assert big_test_string == crypto.decrypt(crypto.encrypt(big_test_string)), "MultiAlphabet cipher"
 
     crypto = MultiAlphabetCrypto.from_table(table)  # Constructed from table
     assert test_string == crypto.decrypt(crypto.encrypt(test_string)), "MultiAlphabet cipher"
+    assert big_test_string == crypto.decrypt(crypto.encrypt(big_test_string)), "MultiAlphabet cipher"
 
     crypto = MultiAlphabetCrypto(1)
     encrypted = crypto.encrypt(test_string)
